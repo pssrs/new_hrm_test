@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Domain\Domain.csproj" />
+    <ProjectReference Include="..\Persistence\Persistence.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="DTOs\" />
+    <Folder Include="DTOs\Employee\" />
+    <Folder Include="Employees\Commands\" />
+    <Folder Include="Employee\" />
+    <Folder Include="Employee\Queries\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="16.1.1" />
+    <PackageReference Include="MediatR" Version="14.0.0" />
+  </ItemGroup>
+
+</Project>

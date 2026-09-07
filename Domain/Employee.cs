@@ -105,8 +105,11 @@ public class Employee
     [Column("emp_afm")]
     public string Afm { get; set; } = string.Empty;
 
+    [Column("emp_personal_number")]
+    public string PersonalNumber { get; set; } = string.Empty;
+
     [Column("emp_doy")]
-    public string Doy { get; set; } = string.Empty;
+    public int Doy { get; set; }
 
     // =========================
     // CONTACT
@@ -186,7 +189,7 @@ public class Employee
     public int EmploymentType { get; set; } = 0;
 
     [Column("emp_kathgoria")]
-    public string Category { get; set; } = "0";
+    public required string Category { get; set; }
 
     [Column("emp_eidik")]
     public string Specialty { get; set; } = string.Empty;
@@ -206,6 +209,9 @@ public class Employee
 
     [Column("emp_hm_mk")]
     public DateOnly? MKDate { get; set; }
+
+    [Column("emp_hm_mk_next")]
+    public DateOnly? MKNextDate { get; set; }
 
     [Column("emp_code_misth")]
     public string SalaryCode { get; set; } = "Μ01";
@@ -232,10 +238,19 @@ public class Employee
     [Column("emp_hm_vathm")]
     public DateOnly? RankDate { get; set; }
 
+    [Column("emp_hm_vathm_next")]
+    public DateOnly? RankNextDate { get; set; }
+
     [Column("emp_fek")]
     public string Fek { get; set; } = string.Empty;
 
-    [Column("emp_date_added")]
-    public DateOnly? DateAdded { get; set; }
+    [Column("emp_grade_fek")]
+    public string GradeFek { get; set; } = string.Empty;
+
+    // [Column("emp_date_added")]
+    // public DateOnly? DateAdded { get; set; }
+
+    [Column("emp_leave")]
+    public int Leave { get; set; } = 0;
 
 }

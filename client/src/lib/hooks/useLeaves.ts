@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import agent from "../api/agent";
 
 type UseLeavesParams = {
@@ -14,24 +14,23 @@ type DateOnly = {
 
 type LeaveMonthDto = { month: number; count: number };
 
+export type LeavePayload = {
+    am: number;
+    type: number;
+    dateFrom?: string; // ISO yyyy-MM-dd
+    dateTo?: string;   // ISO yyyy-MM-dd
+    duration?: number;
+    year: number;
+    state?: number;
+    notes?: string;
+    request?: string;
+    approval?: string;
+}
+
 export const useLeaves = ({ date }: UseLeavesParams = {}) => {
-    const now = new Date();
-    const dateToUse = date ?? { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
+    const queryClient = useQueryClient();
 
-    const { data: leaveCount, isLoading: isLoadingCount, isError: isErrorCount } = useQuery<number>({
-        queryKey: ['leavecount', dateToUse.year, dateToUse.month],
-        queryFn: async () => {
-            const response = await agent.get('/leave', {
-                params: {
-                    date: `${dateToUse.year}-${String(dateToUse.month).padStart(2, '0')}-${String(dateToUse.day).padStart(2, '0')}`
-                }
-            });
-            return response.data as number;
-        },
-        enabled: true
-    });
 
-    // New: call GetMonthlyCounts endpoint and return monthly aggregation (for charts)
     const year = date?.year ?? new Date().getFullYear();
     const { data: monthlyRaw, isLoading: isLoadingMonthly, isError: isErrorMonthly } = useQuery<LeaveMonthDto[]>({
         queryKey: ['leaveMonthly', year],
@@ -49,16 +48,22 @@ export const useLeaves = ({ date }: UseLeavesParams = {}) => {
         return arr;
     }, [monthlyRaw]);
 
+    const addLeaveAsync = useMutation({
+        mutationFn: async () => {
+            const response = await agent.post('/leave/createEmployeeLeaves', 1);
+            return response.data;
+        },
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['employeeLeaves'] });
+        }
+    });
+
     return {
-        // original single-count
-        leaveCount,
-        // monthly aggregation
         monthlyRaw: monthlyRaw ?? [],
         monthlyCounts,
-
-        // meta
         year,
-        isLoading: isLoadingCount || isLoadingMonthly,
-        isError: isErrorCount || isErrorMonthly
+        isLoading: isLoadingMonthly,
+        isError: isErrorMonthly,
+        addLeave: addLeaveAsync,
     };
 };

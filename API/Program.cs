@@ -2,47 +2,85 @@ using Application.Employees.Queries;
 using Application.Core;
 using Domain;
 using Microsoft.EntityFrameworkCore;
-using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using API.Services;
+using Application.Core.Services;
+using Application.Core.Services.Reports;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+});
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("HRM(web)"),
         new MySqlServerVersion(new Version(8, 0, 34))
     )
 );
+
 builder.Services.AddCors();
 builder.Services.AddMediatR(x => {
     x.RegisterServicesFromAssemblyContaining<GetEmployeeList.Handler>();
 });
 
-// Αλλαγή εδώ
 builder.Services.AddAutoMapper(config =>
 {
     config.AddProfile<MappingProfiles>();
 });
 
-// JWT Authentication
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ISybaseService, SybaseService>();
+builder.Services.AddScoped<IEmployeeChangesService, EmployeeChangesService>();
+
+// νέα γραμμή:
+builder.Services.AddScoped<IEmployeeReportService>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var basePath = config["ReportTemplates:BasePath"]!;
+    return new EmployeeReportService(
+        Path.Combine(basePath, "vevaiosi_ergasias.docx"),
+        Path.Combine(basePath, "adky_atomiko_deltio_katataxis.docx"),
+        Path.Combine(basePath, "vevaiosi_proipiresias_template.docx"),
+        Path.Combine(basePath, "vevaiwsi_anarrotikis_template.docx"),
+        Path.Combine(basePath, "deltio_ypiresiakon_metavolon_template.docx"),
+        sp.GetRequiredService<AppDbContext>());
+});
+builder.Services.AddHostedService<PeriodicMaintenanceService>();
+
 var jwtKey = builder.Configuration["Jwt:Key"]!;
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
+            ValidateIssuer = false,
+            ValidateAudience = false,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                return Task.CompletedTask;
+            }
         };
     });
 builder.Services.AddAuthorization();
@@ -51,11 +89,18 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+// Sub-path: strip /hrm_test prefix — μόνο σε production (IIS sub-application)
+if (!app.Environment.IsDevelopment())
+{
+    app.UsePathBase("/hrm_test");
+}
+
 app.UseCors(x =>
     x.AllowAnyHeader()
      .AllowAnyMethod()
-     .WithOrigins("http://localhost:3000", "https://localhost:3000", "http://myhrm.local", "https://myhrm.local")
+     .WithOrigins("http://localhost:3000", "https://localhost:3000", "http://myhrm.local", "https://myhrm.local", "http://localhost:150", "https://apps.payrollrs.gr")
      .AllowCredentials()
+     .SetPreflightMaxAge(TimeSpan.FromSeconds(3600))
 );
 
 app.UseAuthentication();
@@ -67,12 +112,13 @@ if (app.Environment.IsDevelopment())
 }
 
 // Serve React static files from wwwroot
-app.UseDefaultFiles(); // serves index.html at root
-app.UseStaticFiles();  // serves JS, CSS, images etc.
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
+// API routes
 app.MapControllers();
 
-// SPA fallback: για όλα τα routes που δεν είναι API, επέστρεψε index.html
+// SPA fallback: all non-API routes serve index.html (for React Router)
 app.MapFallbackToFile("index.html");
 
 app.Run();

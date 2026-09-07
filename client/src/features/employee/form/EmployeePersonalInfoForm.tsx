@@ -1,9 +1,10 @@
-import { Box, Button, Paper, TextField, Typography, IconButton, Select, MenuItem, FormControl, InputLabel, CircularProgress, Snackbar, Alert } from "@mui/material";
+import { Box, Button, Paper, TextField, Typography, IconButton, Select, MenuItem, FormControl, InputLabel, CircularProgress, Snackbar, Alert, Autocomplete } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Grid from "@mui/material/GridLegacy";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import { useEmployee } from "../../../lib/hooks/useEmployee";
+import { useValues } from "../../../lib/hooks/useValues";
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -13,7 +14,7 @@ import { useForm, Controller} from "react-hook-form";
 import {zodResolver} from '@hookform/resolvers/zod';
 
 interface EmployeeFormProps {
-    employee?: EmployeeCard;
+    employee?: Employee;
 }
 
 export default function EmployeePersonalInfoForm({ employee: employeeProp }: EmployeeFormProps) {
@@ -35,6 +36,7 @@ export default function EmployeePersonalInfoForm({ employee: employeeProp }: Emp
     });
 
     const { employee: fetchedEmployee, isLoadingEmployee, createEmployee, updateEmployee, isSaving } = useEmployee({ id: employeeProp ? undefined : id });
+    const { doys } = useValues();
     
     const employee = employeeProp ?? fetchedEmployee;
 
@@ -55,11 +57,10 @@ export default function EmployeePersonalInfoForm({ employee: employeeProp }: Emp
     const isNewEmployee = !employeeProp && id === undefined;
 
     const onSubmit = (data: EmployeeCardSchema) => {
-        console.log("Form submitted with data:", data);
         if (isNewEmployee) {
             if (!employee) return;
             if (!window.confirm(`Είστε σίγουροι ότι θέλετε να καταχωρίσετε νέο υπάλληλο;`)) return;
-            createEmployee(data as EmployeeCard, {
+            createEmployee(data as unknown as EmployeeCard, {
                 onSuccess: () => {
                     setSuccessOpen(true);
                     setTimeout(() => {
@@ -73,7 +74,7 @@ export default function EmployeePersonalInfoForm({ employee: employeeProp }: Emp
         } else {
             if (!employee) return;
             if (!window.confirm(`Είστε σίγουροι ότι θέλετε να ενημερώσετε τα στοιχεία του υπαλλήλου ${employee.lastName} ${employee.firstName} με αριθμό μητρώου ${employee.id};`)) return;
-            updateEmployee(data as EmployeeCard, {
+            updateEmployee(data as unknown as EmployeeCard, {
                 onSuccess: () => {
                     setSuccessOpen(true);
                     setTimeout(() => {
@@ -372,12 +373,30 @@ export default function EmployeePersonalInfoForm({ employee: employeeProp }: Emp
                             helperText={errors.amka?.message}
                             slotProps={{ formHelperText: { sx: { position: 'absolute', bottom: -20 } } }}
                         />
-                        <TextField
-                            label="ΔΟΥ"
-                            {...register('doy')}
-                            fullWidth
-                            size="small"
-                            sx={{ mb: 4 }}
+                        <Controller
+                            name="doy"
+                            control={control}
+                            render={({ field }) => (
+                                <Autocomplete
+                                    options={doys}
+                                    getOptionLabel={(option) => option.description}
+                                    isOptionEqualToValue={(option, value) => option.code === value.code}
+                                    value={doys.find((d) => String(d.code) === field.value) ?? null}
+                                    onChange={(_, option) => field.onChange(option ? String(option.code) : '')}
+                                    onBlur={field.onBlur}
+                                    fullWidth
+                                    size="small"
+                                    sx={{ mb: 4 }}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="ΔΟΥ"
+                                            error={!!errors.doy}
+                                            helperText={errors.doy?.message}
+                                        />
+                                    )}
+                                />
+                            )}
                         />
                         <Controller
                             name="identityCardIssueDate"

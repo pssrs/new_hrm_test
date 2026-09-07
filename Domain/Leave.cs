@@ -12,7 +12,7 @@ public class Leave
     public int Id { get; set; }
 
     [Column("idemp")]
-    public int EmployeeId { get; set; }
+    public int Am { get; set; }
 
     [Column("leav_type")]
     public int Type { get; set; }

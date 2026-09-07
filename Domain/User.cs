@@ -29,4 +29,7 @@ public class User
 
     [Column("email")]
     public required string Email {get;set;}
+
+    [Column("am")]
+    public required int Am {get;set;}
 }

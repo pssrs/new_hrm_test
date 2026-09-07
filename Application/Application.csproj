@@ -12,16 +12,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DTOs\" />
-    <Folder Include="DTOs\Employee\" />
     <Folder Include="Employees\Commands\" />
     <Folder Include="Employee\" />
     <Folder Include="Employee\Queries\" />
+    <Folder Include="Leaves\" />
+    <Folder Include="Leaves\Commands\" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AdoNetCore.AseClient" Version="0.19.2" />
     <PackageReference Include="AutoMapper" Version="16.1.1" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
     <PackageReference Include="MediatR" Version="14.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.12" />
+    <PackageReference Include="System.Data.Odbc" Version="10.0.10" />
   </ItemGroup>
 
 </Project>

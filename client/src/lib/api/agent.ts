@@ -27,11 +27,27 @@ agent.interceptors.response.use(
         return response;
     },
     error => {
+        // Για 401: μόνο redirect αν δεν είσαι στη login
         if (error.response?.status === 401) {
-            localStorage.removeItem("token");
+            const isUsersEndpoint = error.config?.url?.includes('/account/users');
 
-            const basename = import.meta.env.VITE_BASENAME || '';
-            window.location.href = `${basename}/login`;
+            // Αν είναι 401 για τα users και είμαι στη σελίδα /users,
+            // αφήνουμε το AdminRoute να κάνει το redirect (μη redirect εδώ)
+            if (isUsersEndpoint && window.location.pathname.includes('/users')) {
+                return Promise.reject(error);
+            }
+
+            localStorage.removeItem("token");
+            localStorage.removeItem("userName");
+
+            const currentPath = window.location.pathname;
+            const isLoginPage = currentPath.includes('/login') || currentPath === '/';
+
+            // Redirect ΜΟΝΟ αν δεν είσαι ήδη στη login σελίδα
+            if (!isLoginPage) {
+                const basename = import.meta.env.VITE_BASENAME || '';
+                window.location.href = `${basename}/login`;
+            }
         }
 
         return Promise.reject(error);

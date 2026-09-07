@@ -2,6 +2,7 @@ using Application.Core;
 using Application.DTOs.Employee;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using System.Linq;
 using Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -10,13 +11,24 @@ namespace Application.Employees.Queries;
 
 public class GetEmployeeList
 {
-    public class Query : IRequest<Result<PagedList<EmployeeCard>>>
+    public class Query : IRequest<Result<PagedList<EmployeeListDto>>>
     {
         public int Page { get; set; } = 1;
-        public int PageSize { get; set; } = 5;
+        public int PageSize { get; set; } = 7;
+        public string? Search { get; set; }
+        public int? Flag { get; set; }
+        public int? Address { get; set; }
+        public int? Sector { get; set; }
+        public int? Department { get; set; }    
+        public int? Office { get; set; }
+        public string? SpecialtyCode { get; set; }
+        public string? BranchCode { get; set; }
+        public int? Mk { get; set; }
+        public int? WorkRelation { get; set; }
+        public string? Grade { get; set; }
     }
 
-    public class Handler : IRequestHandler<Query, Result<PagedList<EmployeeCard>>>
+    public class Handler : IRequestHandler<Query, Result<PagedList<EmployeeListDto>>>
     {
         private readonly AppDbContext _context;
         private readonly IMapper _mapper;
@@ -27,19 +39,87 @@ public class GetEmployeeList
             _mapper = mapper;
         }
 
-        public async Task<Result<PagedList<EmployeeCard>>> Handle(Query request, CancellationToken cancellationToken)
+        public async Task<Result<PagedList<EmployeeListDto>>> Handle(Query request, CancellationToken cancellationToken)
         {
-            var totalCount = await _context.Employees.CountAsync(cancellationToken);
+            var baseQuery = _context.Employees.AsQueryable();
+            
+            if (!string.IsNullOrWhiteSpace(request.Search))
+            {
+                var searchTerm = $"%{request.Search}%";
+                baseQuery = baseQuery.Where(e => 
+                    EF.Functions.Like(e.FirstName + " " + e.LastName, searchTerm, "\\") ||
+                    EF.Functions.Like(e.LastName, searchTerm, "\\") ||
+                    EF.Functions.Like(e.FirstName, searchTerm, "\\") ||
+                    EF.Functions.Like(e.Afm.ToString(), searchTerm, "\\") ||
+                    EF.Functions.Like(e.Am.ToString(), searchTerm, "\\")
+                );
+            }
 
-            var employees = await _context.Employees.OrderBy(e => e.LastName)
+            if (request.Flag.HasValue && request.Flag > 0) baseQuery = baseQuery.Where(e => e.IsActive == request.Flag.Value);
+            if (request.Address.HasValue && request.Address > 0) baseQuery = baseQuery.Where(e => e.Directorate == request.Address.Value);
+            if (request.Sector.HasValue && request.Sector > 0) baseQuery = baseQuery.Where(e => e.Sector == request.Sector.Value);
+            if (request.Department.HasValue && request.Department > 0) baseQuery = baseQuery.Where(e => e.Department == request.Department.Value);
+            if (request.Office.HasValue && request.Office > 0) baseQuery = baseQuery.Where(e => e.Office == request.Office.Value);
+            if (!string.IsNullOrEmpty(request.SpecialtyCode) && request.SpecialtyCode != "all") baseQuery = baseQuery.Where(e => e.Specialty == request.SpecialtyCode);
+            if (!string.IsNullOrEmpty(request.BranchCode) && request.BranchCode != "all") baseQuery = baseQuery.Where(e => e.Branch == request.BranchCode);
+            if (request.Mk.HasValue && request.Mk != 0) baseQuery = baseQuery.Where(e => e.MK == request.Mk.Value);
+            if (request.WorkRelation.HasValue && request.WorkRelation != 0) baseQuery = baseQuery.Where(e => e.WorkRelation == request.WorkRelation.Value);
+            if (!string.IsNullOrEmpty(request.Grade) && request.Grade != "all") baseQuery = baseQuery.Where(e => e.Rank == request.Grade);
+
+            var totalCount = await baseQuery.CountAsync(cancellationToken);
+            var employeesPage = await baseQuery
+                .OrderBy(e => e.LastName)
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
-                .ProjectTo<EmployeeCard>(_mapper.ConfigurationProvider)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.FirstName,
+                    e.LastName,
+                    e.Afm,
+                    e.Am,
+                    e.IsActive,
+                    Directorate = e.Directorate,
+                    Sector = e.Sector,
+                    Department = e.Department,
+                    Office = e.Office,
+                    e.MK,
+                    e.Category,
+                    e.MKDate,
+                    e.MKNextDate,
+                    e.Branch,
+                    e.Specialty,
+                    e.Rank,
+                    e.RankDate,
+                    e.RankNextDate
+                })
                 .ToListAsync(cancellationToken);
 
-            var paged = new PagedList<EmployeeCard>(employees, totalCount);
+            var employees = employeesPage.Select(e => new EmployeeListDto
+            {
+                Id = e.Id,
+                Name = e.LastName + " " + e.FirstName,
+                Afm = e.Afm,
+                AM = e.Am,
+                Address = _context.Addresses.Where(a => a.Id == e.Directorate).Select(a => a.Address_str).FirstOrDefault() ?? string.Empty,
+                Sector = _context.Sectors.Where(s => s.SectorId == e.Sector && s.AddressId == e.Directorate).Select(s => s.SectorName).FirstOrDefault() ?? string.Empty,
+                Department = _context.Departments.Where(d => d.DepartmentId == e.Department && d.AddressId == e.Directorate && d.SectorId == e.Sector).Select(d => d.DepartmentName).FirstOrDefault() ?? string.Empty,
+                Office = _context.Offices.Where(o => o.DepartmentId == e.Office).Select(o => o.OfficeName).FirstOrDefault() ?? string.Empty,
+                IsActive = e.IsActive,
+                Mk = e.MK,
+                Category = e.Category ?? string.Empty,
+                MkDate = e.MKDate ?? new DateOnly(1900, 1, 1),
+                MkNextDate = e.MKNextDate ?? new DateOnly(1900, 1, 1),
+                Branch = e.Branch ?? string.Empty,
+                Specialty = e.Specialty ?? string.Empty,
+                Grade = e.Rank,
+                GrDate = e.RankDate ?? new DateOnly(1900, 1, 1),
+                GrNextDate = e.RankNextDate ?? new DateOnly(1900, 1, 1),
+            }).ToList();
 
-            return Result<PagedList<EmployeeCard>>.Success(paged);
+            var paged = new PagedList<EmployeeListDto>(employees, totalCount);
+
+            return Result<PagedList<EmployeeListDto>>.Success(paged);
         }
     }
 }

@@ -5,8 +5,6 @@ export default function RequireAuth() {
     const { isLoggedIn } = useAccount();
     const location = useLocation();
 
-    //if (loadingUserInfo) return <Typography>Loading...</Typography>
-
     if (!isLoggedIn()) return <Navigate to='/login' state={{from: location}} />
 
     return (

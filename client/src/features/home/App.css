@@ -1,0 +1,22 @@
+@import "../../styles/tokens-v4.css";
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+    outline-color: var(--color-ring);
+  }
+  
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: Geist, sans-serif;
+  }
+}
+
+/* Tab active state with primary color */
+[role="tablist"] [role="tab"][data-state="active"] {
+  border-bottom-color: var(--color-primary) !important;
+}

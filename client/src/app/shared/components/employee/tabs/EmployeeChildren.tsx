@@ -17,28 +17,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { CHILD_LEVEL } from "@/lib/types/constTypes";
 import { Checkbox } from "@/components/ui/checkbox";
-
-function FormField({ label, error, children }: FormFieldProps) {
-  return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
-      {children}
-      {error && <p className="text-sm text-red-500">{error}</p>}
-    </div>
-  );
-}
-
-interface FormFieldProps {
-    label: string;
-    error?: string;
-    children: React.ReactNode;
-}
+import FormField from "@/app/shared/FormField";
 
 const REFERENCE_WIDTH = 1600;
 const MIN_SCALE = 0.6;
 
 export default function EmployeeChildren() {
     const [scale, setScale] = useState(1);
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         const updateScale = () => {
@@ -78,6 +64,7 @@ export default function EmployeeChildren() {
     } satisfies FormData;
 
     const handleRowClick = (child: Children) => {
+        setIsSaving(false);
         setIsEditing(true);
         setValue("id", Number(child.id));
         setValue("employeeId", Number(child.employeeId));
@@ -108,18 +95,21 @@ export default function EmployeeChildren() {
         return formattedDate === "1900-01-01" ? "" : formattedDate;
     };
 
-    const { control, reset, setValue, getValues, formState: { errors, isValid }, trigger } = useForm<FormData>({
+    const { control, reset, setValue, getValues, formState: { errors }, trigger } = useForm<FormData>({
           resolver: zodResolver(employeeChildSchema),
           mode: "onChange",
           defaultValues: defaultFormValues,
     });
 
     const handleSave = async () => {
+        if (isSaving) return;
+
         const isFormValid = await trigger();
         if (!isFormValid) return;
 
         const formData = getValues();
-        
+
+        setIsSaving(true);
         try {
             if (isEditing && formData.id) {
                 updateEmployeeChildren(
@@ -148,10 +138,12 @@ export default function EmployeeChildren() {
                             reset(defaultFormValues);
                             setSheetOpen(false);
                             setIsEditing(false);
+                            setIsSaving(false);
                         },
                         onError: (error) => {
                             showErrorToast("Σφάλμα κατά την ενημέρωση της ποινής");
                             console.error(error);
+                            setIsSaving(false);
                         }
                     }
                 );
@@ -182,16 +174,19 @@ export default function EmployeeChildren() {
                             reset(defaultFormValues);
                             setSheetOpen(false);
                             setIsEditing(false);
+                            setIsSaving(false);
                         },
                         onError: (error) => {
                             showErrorToast("Σφάλμα κατά τη δημιουργία του τέκνου");
                             console.error(error);
+                            setIsSaving(false);
                         }
                     }
                 );
             }
         } catch (error) {
             console.error("Error saving penalty:", error);
+            setIsSaving(false);
         }
     };
 
@@ -212,6 +207,7 @@ export default function EmployeeChildren() {
     const handleCloseSheet = () => {
         setSheetOpen(false);
         setIsEditing(false);
+        setIsSaving(false);
         reset(defaultFormValues);
     };
 
@@ -219,6 +215,7 @@ export default function EmployeeChildren() {
         setIsEditing(false);
         reset(defaultFormValues);
         setSheetOpen(true);
+        setIsSaving(false);
     };
 
     const formatDate = (date: string | Date) => {
@@ -518,7 +515,7 @@ export default function EmployeeChildren() {
                                 background: "var(--color-primary)", 
                                 color: "var(--color-primary-foreground)" 
                             }}
-                            disabled={!isValid}
+                            disabled={isSaving}
                             onClick={handleSave}
                         >
                             {isEditing ? 'Ενημέρωση' : 'Αποθήκευση'}

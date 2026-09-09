@@ -51,16 +51,21 @@ public class GetEmployeeById
             if (e == null)
                 return Result<EmployeeListDto>.Failure("Employee not found", 404);
 
+            var address = await _context.Addresses.Where(a => a.Id == e.Directorate).Select(a => a.Address_str).FirstOrDefaultAsync(cancellationToken);
+            var sector = await _context.Sectors.Where(s => s.SectorId == e.Sector && s.AddressId == e.Directorate).Select(s => s.SectorName).FirstOrDefaultAsync(cancellationToken);
+            var department = await _context.Departments.Where(d => d.DepartmentId == e.Department && d.AddressId == e.Directorate && d.SectorId == e.Sector).Select(d => d.DepartmentName).FirstOrDefaultAsync(cancellationToken);
+            var office = await _context.Offices.Where(o => o.DepartmentId == e.Office).Select(o => o.OfficeName).FirstOrDefaultAsync(cancellationToken);
+
             var dto = new EmployeeListDto
             {
                 Id = e.Id,
                 Name = e.LastName + " " + e.FirstName,
                 Afm = e.Afm,
                 AM = e.Am,
-                Address = _context.Addresses.Where(a => a.Id == e.Directorate).Select(a => a.Address_str).FirstOrDefault() ?? string.Empty,
-                Sector = _context.Sectors.Where(s => s.SectorId == e.Sector && s.AddressId == e.Directorate).Select(s => s.SectorName).FirstOrDefault() ?? string.Empty,
-                Department = _context.Departments.Where(d => d.DepartmentId == e.Department && d.AddressId == e.Directorate && d.SectorId == e.Sector).Select(d => d.DepartmentName).FirstOrDefault() ?? string.Empty,
-                Office = _context.Offices.Where(o => o.DepartmentId == e.Office).Select(o => o.OfficeName).FirstOrDefault() ?? string.Empty,
+                Address = address ?? string.Empty,
+                Sector = sector ?? string.Empty,
+                Department = department ?? string.Empty,
+                Office = office ?? string.Empty,
                 IsActive = e.IsActive,
                 Mk = e.MK,
                 Category = e.Category ?? string.Empty,

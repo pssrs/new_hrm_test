@@ -8,7 +8,7 @@ import { useEmployee } from "@/lib/hooks/useEmployee";
 import { showErrorToast, showSuccessToast } from "@/lib/utils/toastHelpers";
 import { employeeStudySchema } from "@/lib/schemas/employeeStudySchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { STUDY_EDUCATION } from "@/lib/types/constTypes";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,6 +26,7 @@ export default function EmployeeStudiesForm({ study, onClose }: EmployeeStudiesF
     type FormData = z.infer<typeof employeeStudySchema>;
     const isEditing = !!study?.id;
     const {studyTypes} = useValues();
+    const [isSaving, setIsSaving] = useState(false);
     
     const defaultFormValues = {
         id: 0,
@@ -83,11 +84,14 @@ export default function EmployeeStudiesForm({ study, onClose }: EmployeeStudiesF
     }, [study]);
 
     const handleSave = async () => {
+        if (isSaving) return;
+
         const isFormValid = await trigger();
         if (!isFormValid) return;
 
         const formData = getValues();
-        
+
+        setIsSaving(true);
         try {
             if (isEditing && formData.id) {
                 updateEmployeeStudies(
@@ -112,11 +116,13 @@ export default function EmployeeStudiesForm({ study, onClose }: EmployeeStudiesF
                         onSuccess: () => {
                             showSuccessToast("Το πτυχίο ενημερώθηκε με επιτυχία");
                             reset(defaultFormValues);
+                            setIsSaving(false);
                             onClose();
                         },
                         onError: (error) => {
                             showErrorToast("Σφάλμα κατά την ενημέρωση του πτυχίου");
                             console.error(error);
+                            setIsSaving(false);
                         }
                     }
                 );
@@ -141,16 +147,19 @@ export default function EmployeeStudiesForm({ study, onClose }: EmployeeStudiesF
                     onSuccess: () => {
                         showSuccessToast("Το πτυχίο καταχωρήθηκε με επιτυχία");
                         reset(defaultFormValues);
+                        setIsSaving(false);
                         onClose();
                     },
                     onError: (error) => {
                         showErrorToast("Σφάλμα κατά τη δημιουργία του πτυχίου");
                         console.error(error);
+                        setIsSaving(false);
                     }
                 });
             }
         } catch (error) {
             console.error("Error saving penalty:", error);
+            setIsSaving(false);
         }
     };
 
@@ -321,6 +330,7 @@ export default function EmployeeStudiesForm({ study, onClose }: EmployeeStudiesF
                         background: "var(--color-primary)", 
                         color: "var(--color-primary-foreground)" 
                     }}
+                    disabled={isSaving}
                     onClick={handleSave}
                 >
                     {isEditing ? 'Ενημέρωση' : 'Αποθήκευση'}

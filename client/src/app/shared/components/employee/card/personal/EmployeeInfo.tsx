@@ -29,6 +29,7 @@ function FormField({ label, error, children }: { label: string; error?: string; 
 
 export default function EmployeeInfo({ employee }: EmployeeInfoProps) {
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const { updateEmployeeInfo } = useEmployee({ id: employee?.id?.toString() });
     const infoForm = useForm<InfoSectionSchema>({
         mode: 'onChange',
@@ -70,7 +71,7 @@ export default function EmployeeInfo({ employee }: EmployeeInfoProps) {
     }, [sheetOpen, employee, reset]);
 
     const handleSave = handleSubmit((data) => {
-        if (!employee) return;
+        if (!employee || isSaving) return;
 
         const updatedEmployee: EmployeeInfo = {
             am: employee.am,
@@ -81,6 +82,7 @@ export default function EmployeeInfo({ employee }: EmployeeInfoProps) {
             email: data.email,
         };
 
+        setIsSaving(true);
         updateEmployeeInfo(updatedEmployee, {
             onSuccess: () => {
                 toast.custom((t) => (
@@ -98,6 +100,7 @@ export default function EmployeeInfo({ employee }: EmployeeInfoProps) {
                     </div>
                 ));
                 setSheetOpen(false);
+                setIsSaving(false);
             },
             onError: (error: Error) => {
                 toast.custom((t) => (
@@ -114,6 +117,7 @@ export default function EmployeeInfo({ employee }: EmployeeInfoProps) {
                         </button>
                     </div>
                 ));
+                setIsSaving(false);
             },
         });
     });
@@ -198,7 +202,7 @@ export default function EmployeeInfo({ employee }: EmployeeInfoProps) {
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-ghost)'}
-                            onClick={() => setSheetOpen(false)}>Κλείσιμο</Button>
+                            onClick={() => { setSheetOpen(false); setIsSaving(false); }}>Κλείσιμο</Button>
                         <Button className="flex-1 transition-all duration-200 hover:opacity-80 w-auto"
                             style={{
                                 display: 'flex',
@@ -212,7 +216,7 @@ export default function EmployeeInfo({ employee }: EmployeeInfoProps) {
                                 color: 'var(--color-primary-foreground)',
                             }}
                             onClick={handleSave}
-                            disabled={!infoForm.formState.isValid}
+                            disabled={!infoForm.formState.isValid || isSaving}
                         >
                             Αποθήκευση
                         </Button>

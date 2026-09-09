@@ -49,6 +49,7 @@ const employmentTypeOptions = [
 export default function EmployeePositionInfo({ employeeService }: EmployeePositionInfoProps) {
     const { positions } = useValues();
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const { updateEmployeePositionInfo } = useEmployee({});
 
     const { control, handleSubmit, reset, trigger, formState: { isValid, errors } } = useForm<PositionInfoFormSchema>({
@@ -65,6 +66,8 @@ export default function EmployeePositionInfo({ employeeService }: EmployeePositi
     });
 
     const handleSave = handleSubmit((data) => {
+        if (isSaving) return;
+        setIsSaving(true);
         updateEmployeePositionInfo({
             am: Number(employeeService?.am),
             fek: data.fek,
@@ -85,6 +88,7 @@ export default function EmployeePositionInfo({ employeeService }: EmployeePositi
                     </div>
                 ));
                 setSheetOpen(false);
+                setIsSaving(false);
             },
             onError: (error: Error) => {
                 toast.custom((t) => (
@@ -98,6 +102,7 @@ export default function EmployeePositionInfo({ employeeService }: EmployeePositi
                         </button>
                     </div>
                 ));
+                setIsSaving(false);
             },
         });
     });
@@ -199,10 +204,10 @@ export default function EmployeePositionInfo({ employeeService }: EmployeePositi
                             style={{ display: "flex", height: "var(--Height-H-10, 40px)", padding: "var(--Padding-Y-py-2, 8px) var(--Padding-X-px-4, 16px)", justifyContent: "center", alignItems: "center", alignSelf: "stretch", borderRadius: "var(--Radius-Rounded-Medium, 6px)", border: "1px solid var(--color-border)", background: "var(--color-ghost)", color: "var(--color-foreground)" }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f3f4f6"}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--color-ghost)"}
-                            onClick={() => setSheetOpen(false)}>Κλείσιμο</Button>
+                            onClick={() => { setSheetOpen(false); setIsSaving(false); }}>Κλείσιμο</Button>
                         <Button className="flex-1 transition-all duration-200 hover:opacity-80 w-auto"
                             style={{ display: "flex", height: "var(--Height-H-10, 40px)", padding: "var(--Padding-Y-py-2, 8px) var(--Padding-X-px-4, 16px)", justifyContent: "center", alignItems: "center", alignSelf: "stretch", borderRadius: "var(--Radius-Rounded-Medium, 6px)", background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
-                            onClick={handleSave} disabled={!isValid}>Αποθήκευση</Button>
+                            onClick={handleSave} disabled={!isValid || isSaving}>Αποθήκευση</Button>
                     </div>
                 </SheetContent>
             </Sheet>

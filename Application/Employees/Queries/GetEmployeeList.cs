@@ -95,16 +95,43 @@ public class GetEmployeeList
                 })
                 .ToListAsync(cancellationToken);
 
+            // Batch-fetch τα reference δεδομένα (Addresses/Sectors/Departments/Offices) μία φορά για
+            // όλη τη σελίδα αντί για 4 queries ανά υπάλληλο (N+1), και τα κάνουμε join in-memory.
+            var directorateIds = employeesPage.Select(e => e.Directorate).Distinct().ToList();
+            var officeIds = employeesPage.Select(e => e.Office).Distinct().ToList();
+
+            var addresses = await _context.Addresses
+                .Where(a => directorateIds.Contains(a.Id))
+                .Select(a => new { a.Id, a.Address_str })
+                .ToDictionaryAsync(a => a.Id, a => a.Address_str, cancellationToken);
+
+            var sectors = await _context.Sectors
+                .Where(s => directorateIds.Contains(s.AddressId))
+                .Select(s => new { s.SectorId, s.AddressId, s.SectorName })
+                .ToListAsync(cancellationToken);
+            var sectorLookup = sectors.ToDictionary(s => (s.AddressId, s.SectorId), s => s.SectorName);
+
+            var departments = await _context.Departments
+                .Where(d => directorateIds.Contains(d.AddressId))
+                .Select(d => new { d.DepartmentId, d.AddressId, d.SectorId, d.DepartmentName })
+                .ToListAsync(cancellationToken);
+            var departmentLookup = departments.ToDictionary(d => (d.AddressId, d.SectorId, d.DepartmentId), d => d.DepartmentName);
+
+            var offices = await _context.Offices
+                .Where(o => officeIds.Contains(o.DepartmentId))
+                .Select(o => new { o.DepartmentId, o.OfficeName })
+                .ToDictionaryAsync(o => o.DepartmentId, o => o.OfficeName, cancellationToken);
+
             var employees = employeesPage.Select(e => new EmployeeListDto
             {
                 Id = e.Id,
                 Name = e.LastName + " " + e.FirstName,
                 Afm = e.Afm,
                 AM = e.Am,
-                Address = _context.Addresses.Where(a => a.Id == e.Directorate).Select(a => a.Address_str).FirstOrDefault() ?? string.Empty,
-                Sector = _context.Sectors.Where(s => s.SectorId == e.Sector && s.AddressId == e.Directorate).Select(s => s.SectorName).FirstOrDefault() ?? string.Empty,
-                Department = _context.Departments.Where(d => d.DepartmentId == e.Department && d.AddressId == e.Directorate && d.SectorId == e.Sector).Select(d => d.DepartmentName).FirstOrDefault() ?? string.Empty,
-                Office = _context.Offices.Where(o => o.DepartmentId == e.Office).Select(o => o.OfficeName).FirstOrDefault() ?? string.Empty,
+                Address = addresses.GetValueOrDefault(e.Directorate, string.Empty),
+                Sector = sectorLookup.GetValueOrDefault((e.Directorate, e.Sector), string.Empty),
+                Department = departmentLookup.GetValueOrDefault((e.Directorate, e.Sector, e.Department), string.Empty),
+                Office = offices.GetValueOrDefault(e.Office, string.Empty),
                 IsActive = e.IsActive,
                 Mk = e.MK,
                 Category = e.Category ?? string.Empty,

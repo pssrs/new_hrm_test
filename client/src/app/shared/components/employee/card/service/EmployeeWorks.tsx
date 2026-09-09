@@ -31,6 +31,7 @@ function FormField({ label, children, error }: { label: string; children: React.
 export default function EmployeeWorks({ employeeService }: EmployeeWorksProps) {
     const { address, sector, department, office } = useValues();
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const { updateEmployeeWorks } = useEmployee({});
 
     const { control, handleSubmit, watch, reset, trigger, formState: { isValid, errors } } = useForm<WorksSchema>({
@@ -51,6 +52,8 @@ export default function EmployeeWorks({ employeeService }: EmployeeWorksProps) {
     const filteredDepartments = department.filter(d => d.addressId === watchDirectorate && d.sectorId === watchSector);
 
     const handleSave = handleSubmit((data) => {
+        if (isSaving) return;
+        setIsSaving(true);
         updateEmployeeWorks({
             am: Number(employeeService?.am),
             workDirectorate: data.workDirectorate,
@@ -71,6 +74,7 @@ export default function EmployeeWorks({ employeeService }: EmployeeWorksProps) {
                     </div>
                 ));
                 setSheetOpen(false);
+                setIsSaving(false);
             },
             onError: (error: Error) => {
                 toast.custom((t) => (
@@ -84,6 +88,7 @@ export default function EmployeeWorks({ employeeService }: EmployeeWorksProps) {
                         </button>
                     </div>
                 ));
+                setIsSaving(false);
             },
         });
     });
@@ -199,7 +204,7 @@ export default function EmployeeWorks({ employeeService }: EmployeeWorksProps) {
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f3f4f6"}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--color-ghost)"}
-                            onClick={() => setSheetOpen(false)}>Κλείσιμο</Button>
+                            onClick={() => { setSheetOpen(false); setIsSaving(false); }}>Κλείσιμο</Button>
                         <Button className="flex-1 transition-all duration-200 hover:opacity-80 w-auto"
                             style={{
                                 display: "flex",
@@ -212,7 +217,7 @@ export default function EmployeeWorks({ employeeService }: EmployeeWorksProps) {
                                 background: "var(--color-primary)",
                                 color: "var(--color-primary-foreground)",
                             }}
-                            onClick={handleSave} disabled={!isValid}>Αποθήκευση</Button>
+                            onClick={handleSave} disabled={!isValid || isSaving}>Αποθήκευση</Button>
                     </div>
                 </SheetContent>
             </Sheet>

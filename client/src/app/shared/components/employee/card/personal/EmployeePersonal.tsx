@@ -21,6 +21,7 @@ interface EmployeePersonalProps {
 
 export default function EmployeePersonal({ employee }: EmployeePersonalProps) {
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const { updateEmployeePersonal } = useEmployee({ id: employee?.id?.toString() });
     const personalForm = useForm<PersonalSectionSchema>({
         mode: 'onChange',
@@ -62,7 +63,7 @@ export default function EmployeePersonal({ employee }: EmployeePersonalProps) {
     }, [sheetOpen, employee, reset]);
 
     const handleSave = handleSubmit((data) => {
-        if (!employee) return;
+        if (!employee || isSaving) return;
 
         const updatedEmployee: EmployeePersonal = {
             am: employee.am,
@@ -72,8 +73,7 @@ export default function EmployeePersonal({ employee }: EmployeePersonalProps) {
             familyStatus: Number(data.familyStatus),
         };
 
-        console.log("Updated Employee Personal:", updatedEmployee);
-
+        setIsSaving(true);
         updateEmployeePersonal(updatedEmployee, {
             onSuccess: () => {
                 toast.custom((t) => (
@@ -91,6 +91,7 @@ export default function EmployeePersonal({ employee }: EmployeePersonalProps) {
                     </div>
                 ));
                 setSheetOpen(false);
+                setIsSaving(false);
             },
             onError: (error: Error) => {
                 toast.custom((t) => (
@@ -107,6 +108,7 @@ export default function EmployeePersonal({ employee }: EmployeePersonalProps) {
                         </button>
                     </div>
                 ));
+                setIsSaving(false);
             },
         });
     });
@@ -246,7 +248,7 @@ export default function EmployeePersonal({ employee }: EmployeePersonalProps) {
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-ghost)'}
-                            onClick={() => setSheetOpen(false)}>Κλείσιμο</Button>
+                            onClick={() => { setSheetOpen(false); setIsSaving(false); }}>Κλείσιμο</Button>
                         <Button className="flex-1 transition-all duration-200 hover:opacity-80 w-auto"
                             style={{
                                 display: 'flex',
@@ -257,8 +259,9 @@ export default function EmployeePersonal({ employee }: EmployeePersonalProps) {
                                 alignSelf: 'stretch',
                                 borderRadius: 'var(--Radius-Rounded-Medium, 6px)',
                                 background: 'var(--color-primary)',
-                                color: 'var(--color-primary-foreground)', 
+                                color: 'var(--color-primary-foreground)',
                             }}
+                            disabled={isSaving}
                             onClick={handleSave}
                         >
                             Αποθήκευση

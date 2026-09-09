@@ -7,7 +7,7 @@ import type z from "zod";
 import { useEmployee } from "@/lib/hooks/useEmployee";
 import { showErrorToast, showSuccessToast } from "@/lib/utils/toastHelpers";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParams } from "react-router";
 import { useValues } from "@/lib/hooks/useValues";
@@ -28,6 +28,7 @@ export default function EmployeePlacementsForm({ placement, onClose }: EmployeeP
     const { address, sector, department, office } = useValues();
     type FormData = z.infer<typeof employeePalcementSchema>;
     const isEditing = !!placement?.id;
+    const [isSaving, setIsSaving] = useState(false);
 
     const defaultFormValues = {
         id: 0,
@@ -72,14 +73,18 @@ export default function EmployeePlacementsForm({ placement, onClose }: EmployeeP
             date: formDate(placement.date),
             user: user?.userName || "",
         });
+        setIsSaving(false);
     }, [placement]);
 
     const handleSave = async () => {
+        if (isSaving) return;
+
         const isFormValid = await trigger();
         if (!isFormValid) return;
 
         const formData = getValues();
-        
+
+        setIsSaving(true);
         try {
             if (isEditing && formData.id) {
                 updateEmployeePlacement(
@@ -104,11 +109,13 @@ export default function EmployeePlacementsForm({ placement, onClose }: EmployeeP
                         onSuccess: () => {
                             showSuccessToast("Η τοποθέτηση ενημερώθηκε με επιτυχία");
                             reset(defaultFormValues);
+                            setIsSaving(false);
                             onClose();
                         },
                         onError: (error) => {
                             showErrorToast("Σφάλμα κατά την ενημέρωση της τοποθέτησης");
                             console.error(error);
+                            setIsSaving(false);
                         }
                     }
                 );
@@ -133,15 +140,18 @@ export default function EmployeePlacementsForm({ placement, onClose }: EmployeeP
                     onSuccess: () => {
                         showSuccessToast("Η τοποθέτηση καταχωρήθηκε με επιτυχία");
                         reset(defaultFormValues);
+                        setIsSaving(false);
                         onClose();
                     },
                     onError: (error) => {
                         showErrorToast("Σφάλμα κατά τη δημιουργία της τοποθέτησης");
                         console.error(error);
+                        setIsSaving(false);
                     }
                 });
             }
         } catch (error) {
+            setIsSaving(false);
             console.error("Error saving placement:", error);
         }
     };
@@ -368,6 +378,7 @@ export default function EmployeePlacementsForm({ placement, onClose }: EmployeeP
                         color: "var(--color-primary-foreground)" 
                     }}
                     onClick={handleSave}
+                    disabled={isSaving}
                 >
                     {isEditing ? 'Ενημέρωση' : 'Αποθήκευση'}
                 </Button>

@@ -45,6 +45,7 @@ export default function EmployeePenalty() {
     const [isEditing, setIsEditing] = useState(false);
     const [filterType, setFilterType] = useState("");
     const [filtersOpen, setFiltersOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
     type FormData = z.infer<typeof employeePenaltySchema>;
 
@@ -101,14 +102,18 @@ export default function EmployeePenalty() {
         setValue("amount", penalty.amount ? String(penalty.amount) : null);
         setValue("flag", Number(penalty.flag));
         setSheetOpen(true);
+        setIsSaving(false);
     };
 
     const handleSave = async () => {
+        if (isSaving) return;
+
         const isFormValid = await trigger();
         if (!isFormValid) return;
 
         const formData = getValues();
-        
+        setIsSaving(true);
+
         try {
             if (isEditing && formData.id) {
                 updateEmployeePenalty(
@@ -130,10 +135,12 @@ export default function EmployeePenalty() {
                             reset(defaultFormValues);
                             setSheetOpen(false);
                             setIsEditing(false);
+                            setIsSaving(false);
                         },
                         onError: (error) => {
                             showErrorToast("Σφάλμα κατά την ενημέρωση της ποινής");
                             console.error(error);
+                            setIsSaving(false);
                         }
                     }
                 );
@@ -157,15 +164,19 @@ export default function EmployeePenalty() {
                             reset(defaultFormValues);
                             setSheetOpen(false);
                             setIsEditing(false);
+                            setIsSaving(false);
                         },
-                        onError: () => {
+                        onError: (error) => {
                             showErrorToast("Σφάλμα κατά τη δημιουργία της ποινής");
+                            console.error(error);
+                            setIsSaving(false);
                         }
                     }
                 );
             }
         } catch (error) {
             console.error("Error saving penalty:", error);
+            setIsSaving(false);
         }
     };
 
@@ -187,11 +198,13 @@ export default function EmployeePenalty() {
         setIsEditing(false);
         reset(defaultFormValues);
         setSheetOpen(true);
+        setIsSaving(false);
     };
 
     const handleCloseSheet = () => {
         setSheetOpen(false);
         setIsEditing(false);
+        setIsSaving(false);
         reset(defaultFormValues);
     };
 
@@ -303,7 +316,7 @@ export default function EmployeePenalty() {
                                 className='hover:bg-neutral-50 transition-colors cursor-pointer'
                                 onClick={() => handleRowClick(pen)}
                             >
-                                <TableCell className='px-3 py-3 text-left' style={{ width: '23%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} >{getPenaltyDescription(pen.type)}</TableCell>
+                                <TableCell className='px-3 py-3 text-left' style={{ width: '23%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} >{getPenaltyDescription(pen.lexical!)}</TableCell>
                                 <TableCell className='px-3 py-3 text-left' style={{ width: '16%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} >{calculatePenaltyDays(pen.dateFrom, pen.dateTo)} {calculatePenaltyDays(pen.dateFrom, pen.dateTo) === 1 ? 'ημέρα' : 'ημέρες'}</TableCell>
                                 <TableCell className='px-3 py-3 text-left' style={{ width: '19%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} >{formatDate(pen.dateFrom)}</TableCell>
                                 <TableCell className='px-3 py-3 text-left' style={{ width: '19%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} >{formatDate(pen.dateTo)}</TableCell>
@@ -473,6 +486,7 @@ export default function EmployeePenalty() {
                                 background: "var(--color-primary)", 
                                 color: "var(--color-primary-foreground)" 
                             }}
+                            disabled={isSaving}
                             onClick={handleSave}
                         >
                             {isEditing ? 'Ενημέρωση' : 'Αποθήκευση'}

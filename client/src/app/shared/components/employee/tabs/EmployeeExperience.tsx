@@ -44,6 +44,7 @@ const REFERENCE_WIDTH = 1600;
 const MIN_SCALE = 0.6;
 
 export default function EmployeeExperience() {
+    const [isSaving, setIsSaving] = useState(false);
     const [scale, setScale] = useState(1);
 
     useEffect(() => {
@@ -108,6 +109,7 @@ export default function EmployeeExperience() {
 
     const handleRowClick = (exp: Record<string, unknown>) => {
         setIsEditing(true);
+        setIsSaving(false);
         // Συμπληρώνουμε τη φόρμα με τα δεδομένα της εγγραφής (reset καθαρίζει και τυχόν παλιά errors)
         const startDateStr = typeof exp.dateFrom === 'string' ? exp.dateFrom : new Date(exp.dateFrom as string | Date).toISOString().split('T')[0];
         const endDateStr = typeof exp.dateTo === 'string' ? exp.dateTo : new Date(exp.dateTo as string | Date).toISOString().split('T')[0];
@@ -142,88 +144,94 @@ export default function EmployeeExperience() {
     };
 
     const handleSave = async () => {
-      const isFormValid = await trigger();
-      if (!isFormValid) {
-        return;
-      }
+        if (isSaving) return;
 
-      const formData = getValues();
-      
-      // Έλεγχος για επικάλυψη διαστημάτων
-      const startDate = new Date(formData.startDate);
-      const endDate = formData.endDate ? new Date(formData.endDate) : new Date("9999-12-31");
-      const currentId = formData.id;
+        const isFormValid = await trigger();
+        if (!isFormValid) return;
+        const formData = getValues();
 
-      // Έλεγχος αν υπάρχει άλλη προϋπηρεσία που επικαλύπτει το διάστημα
-      const hasOverlap = employeeExperienceList?.some((exp: Record<string, unknown>) => {
-        // Αν ενημερώνουμε, παραλείπουμε τον έλεγχο για την ίδια εγγραφή
-        if (currentId && exp.id === currentId) return false;
+        // Έλεγχος για επικάλυψη διαστημάτων
+        const startDate = new Date(formData.startDate);
+        const endDate = formData.endDate ? new Date(formData.endDate) : new Date("9999-12-31");
+        const currentId = formData.id;
 
-        const expDateFrom = new Date(exp.dateFrom as string | Date);
-        const expDateTo = new Date(exp.dateTo as string | Date);
+        // Έλεγχος αν υπάρχει άλλη προϋπηρεσία που επικαλύπτει το διάστημα
+        const hasOverlap = employeeExperienceList?.some((exp: Record<string, unknown>) => {
+            // Αν ενημερώνουμε, παραλείπουμε τον έλεγχο για την ίδια εγγραφή
+            if (currentId && exp.id === currentId) return false;
 
-        // Ελέγχουμε για επικάλυψη
-        // Επικαλύπτονται αν: startDate <= expDateTo AND endDate >= expDateFrom
-        return startDate <= expDateTo && endDate >= expDateFrom;
-      });
+            const expDateFrom = new Date(exp.dateFrom as string | Date);
+            const expDateTo = new Date(exp.dateTo as string | Date);
 
-      if (hasOverlap) {
-        showWarningToast("Προσοχή: Υπάρχει ήδη καταχωριμένη προϋπηρεσία που επικαλύπτει αυτό το διάστημα!");
-        return;
-      }
-      
-      // Convert dates to ISO strings for API
-      const payload: unknown = {
-        id: formData.id || 0,
-        am: employee?.am || 0,
-        type: Number(formData.type),
-        dateFrom: formData.startDate,
-        dateTo: formData.endDate ? formData.endDate : "1900-01-01",
-        years: "0",
-        months: "0",
-        days: "0",
-        carrier: formData.organization,
-        decisionId: formData.decisionNumber,
-        comments: formData.comments,
-        agonis: 0,
-        mk: formData.checkbox1 ? 1 : 0,
-        grade: formData.checkbox2 ? 1 : 0,
-        sunt: formData.checkbox3 ? 1 : 0,
-        auto: formData.checkbox4 ? "1" : "0",
-        dateCouncil: new Date().toISOString().split('T')[0],
-      };
+            // Ελέγχουμε για επικάλυψη
+            // Επικαλύπτονται αν: startDate <= expDateTo AND endDate >= expDateFrom
+            return startDate <= expDateTo && endDate >= expDateFrom;
+        });
 
-      try {
-        if (isEditing && formData.id) {
-          // Update
-          updateEmployeeExperience(payload as Experience, {
-            onSuccess: () => {
-              showSuccessToast("Η προϋπηρεσία ενημερώθηκε επιτυχώς!");
-              setSheetOpen(false);
-              reset();
-              setIsEditing(false);
-            },
-            onError: (error: Error) => {
-              showErrorToast(error?.message || "Σφάλμα κατά την ενημέρωση της προϋπηρεσίας");
-            }
-          });
-        } else {
-          // Create
-          createEmployeeExperience(payload as Experience, {
-            onSuccess: () => {
-              showSuccessToast("Η προϋπηρεσία προστέθηκε επιτυχώς!");
-              setSheetOpen(false);
-              reset();
-              setIsEditing(false);
-            },
-            onError: (error: Error) => {
-              showErrorToast(error?.message || "Σφάλμα κατά την προσθήκη της προϋπηρεσίας");
-            }
-          });
+        if (hasOverlap) {
+            showWarningToast("Προσοχή: Υπάρχει ήδη καταχωριμένη προϋπηρεσία που επικαλύπτει αυτό το διάστημα!");
+            return;
         }
-      } catch (error) {
-        console.error("Σφάλμα κατά την αποθήκευση:", error);
-      }
+
+        setIsSaving(true);
+
+        // Convert dates to ISO strings for API
+        const payload: unknown = {
+            id: formData.id || 0,
+            am: employee?.am || 0,
+            type: Number(formData.type),
+            dateFrom: formData.startDate,
+            dateTo: formData.endDate ? formData.endDate : "1900-01-01",
+            years: "0",
+            months: "0",
+            days: "0",
+            carrier: formData.organization,
+            decisionId: formData.decisionNumber,
+            comments: formData.comments,
+            agonis: 0,
+            mk: formData.checkbox1 ? 1 : 0,
+            grade: formData.checkbox2 ? 1 : 0,
+            sunt: formData.checkbox3 ? 1 : 0,
+            auto: formData.checkbox4 ? "1" : "0",
+            dateCouncil: new Date().toISOString().split('T')[0],
+        };
+
+        try {
+            if (isEditing && formData.id) {
+            // Update
+            updateEmployeeExperience(payload as Experience, {
+                onSuccess: () => {
+                showSuccessToast("Η προϋπηρεσία ενημερώθηκε επιτυχώς!");
+                setSheetOpen(false);
+                reset();
+                setIsEditing(false);
+                setIsSaving(false);
+                },
+                onError: (error: Error) => {
+                showErrorToast(error?.message || "Σφάλμα κατά την ενημέρωση της προϋπηρεσίας");
+                setIsSaving(false);
+                }
+            });
+            } else {
+            // Create
+            createEmployeeExperience(payload as Experience, {
+                onSuccess: () => {
+                showSuccessToast("Η προϋπηρεσία προστέθηκε επιτυχώς!");
+                setSheetOpen(false);
+                reset();
+                setIsEditing(false);
+                setIsSaving(false);
+                },
+                onError: (error: Error) => {
+                showErrorToast(error?.message || "Σφάλμα κατά την προσθήκη της προϋπηρεσίας");
+                setIsSaving(false);
+                }
+            });
+            }
+        } catch (error) {
+            setIsSaving(false);
+            console.error("Σφάλμα κατά την αποθήκευση:", error);
+        }
     };
 
     const formatDate = (date: string | Date) => {
@@ -537,6 +545,7 @@ export default function EmployeeExperience() {
                                 onClick={() => setSheetOpen(false)}>Κλείσιμο</Button>
                             <Button className="flex-1 transition-all duration-200 hover:opacity-80 w-auto"
                                 style={{ display: "flex", height: "var(--Height-H-10, 40px)", padding: "var(--Padding-Y-py-2, 8px) var(--Padding-X-px-4, 16px)", justifyContent: "center", alignItems: "center", alignSelf: "stretch", borderRadius: "var(--Radius-Rounded-Medium, 6px)", background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
+                                disabled={isSaving}
                                 onClick={handleSave}>Αποθήκευση</Button>
                         </div>
                   </SheetContent>

@@ -28,6 +28,7 @@ export default function EmployeeFileForm({ file, onClose }: EmployeeFileFormProp
     const isEditing = !!file?.id;
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [fileError, setFileError] = useState<string | undefined>(undefined);
+    const [isSaving, setIsSaving] = useState(false);
 
     const defaultFormValues = {
         id: 0,
@@ -56,6 +57,8 @@ export default function EmployeeFileForm({ file, onClose }: EmployeeFileFormProp
     }, [file]);
 
     const handleSave = async () => {
+        if (isSaving) return;
+
         const isFormValid = await trigger();
         if (!isFormValid) return;
 
@@ -66,6 +69,7 @@ export default function EmployeeFileForm({ file, onClose }: EmployeeFileFormProp
 
         const formData = getValues();
 
+        setIsSaving(true);
         try {
             if (isEditing && formData.id) {
                 const form = new FormData();
@@ -81,6 +85,7 @@ export default function EmployeeFileForm({ file, onClose }: EmployeeFileFormProp
                     onSuccess: () => {
                         showSuccessToast("Η μεταβολή ενημερώθηκε με επιτυχία");
                         reset(defaultFormValues);
+                            setIsSaving(false);
                             onClose();
                         },
                         onError: (error) => {
@@ -89,6 +94,7 @@ export default function EmployeeFileForm({ file, onClose }: EmployeeFileFormProp
                                     error.response?.data || "Σφάλμα κατά την αποθήκευση."
                                 );
                             }
+                            setIsSaving(false);
                         }
                     }
                 );
@@ -103,6 +109,7 @@ export default function EmployeeFileForm({ file, onClose }: EmployeeFileFormProp
                     onSuccess: () => {
                         showSuccessToast("Το αρχείο καταχωρήθηκε με επιτυχία");
                         reset(defaultFormValues);
+                        setIsSaving(false);
                         onClose();
                     },
                     onError: (error) => {
@@ -111,11 +118,13 @@ export default function EmployeeFileForm({ file, onClose }: EmployeeFileFormProp
                                 error.response?.data || "Σφάλμα κατά την αποθήκευση."
                             );
                         }
+                        setIsSaving(false);
                     }
                 });
             }
         } catch (error) {
             console.error("Error saving penalty:", error);
+            setIsSaving(false);
         }
     };
 
@@ -176,7 +185,7 @@ export default function EmployeeFileForm({ file, onClose }: EmployeeFileFormProp
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f3f4f6"}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--color-ghost)"}
-                        onClick={onClose}
+                        onClick={() => { setIsSaving(false); onClose(); }}
                     >
                         Κλείσιμο
                     </Button>
@@ -192,7 +201,7 @@ export default function EmployeeFileForm({ file, onClose }: EmployeeFileFormProp
                             background: "var(--color-primary)", 
                             color: "var(--color-primary-foreground)" 
                         }}
-                        disabled={!isValid}
+                        disabled={!isValid || isSaving}
                         onClick={handleSave}
                     >
                         {isEditing ? 'Ενημέρωση' : 'Αποθήκευση'}

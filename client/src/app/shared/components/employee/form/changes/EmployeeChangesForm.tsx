@@ -7,7 +7,7 @@ import type z from "zod";
 import { useEmployee } from "@/lib/hooks/useEmployee";
 import { showErrorToast, showSuccessToast } from "@/lib/utils/toastHelpers";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParams } from "react-router";
 import { employeeChangesSchema } from "@/lib/schemas/EmployeeChangesSchema";
@@ -26,6 +26,7 @@ export default function EmployeeChangesForm({ change, onClose }: EmployeeChanges
     const {changeTypeMap, changeTypes} = useValues();
     type FormData = z.infer<typeof employeeChangesSchema>;
     const isEditing = !!change?.id;
+    const [isSaving, setIsSaving] = useState(false);
 
     const defaultFormValues = {
         id: 0,
@@ -45,7 +46,7 @@ export default function EmployeeChangesForm({ change, onClose }: EmployeeChanges
         protocolDate: ""
     } satisfies FormData;
 
-    const { control, reset, getValues, formState: { errors, isValid }, trigger } = useForm<FormData>({
+    const { control, reset, getValues, formState: { errors }, trigger } = useForm<FormData>({
         resolver: zodResolver(employeeChangesSchema),
         mode: "onChange",
         defaultValues: defaultFormValues,
@@ -96,11 +97,14 @@ export default function EmployeeChangesForm({ change, onClose }: EmployeeChanges
     }, [change]);
 
     const handleSave = async () => {
+        if (isSaving) return;
+
         const isFormValid = await trigger();
         if (!isFormValid) return;
 
         const formData = getValues();
-        
+
+        setIsSaving(true);
         try {
             if (isEditing && formData.id) {
                 updateEmployeeChange(
@@ -126,11 +130,13 @@ export default function EmployeeChangesForm({ change, onClose }: EmployeeChanges
                         onSuccess: () => {
                             showSuccessToast("Η μεταβολή ενημερώθηκε με επιτυχία");
                             reset(defaultFormValues);
+                            setIsSaving(false);
                             onClose();
                         },
                         onError: (error) => {
                             showErrorToast("Σφάλμα κατά την ενημέρωση της μεταβολής");
                             console.error(error);
+                            setIsSaving(false);
                         }
                     }
                 );
@@ -156,16 +162,19 @@ export default function EmployeeChangesForm({ change, onClose }: EmployeeChanges
                     onSuccess: () => {
                         showSuccessToast("Η μεταβολή καταχωρήθηκε με επιτυχία");
                         reset(defaultFormValues);
+                        setIsSaving(false);
                         onClose();
                     },
                     onError: (error) => {
                         showErrorToast("Σφάλμα κατά τη δημιουργία της μεταβολής");
                         console.error(error);
+                        setIsSaving(false);
                     }
                 });
             }
         } catch (error) {
             console.error("Error saving penalty:", error);
+            setIsSaving(false);
         }
     };
 
@@ -342,7 +351,7 @@ export default function EmployeeChangesForm({ change, onClose }: EmployeeChanges
                             background: "var(--color-primary)", 
                             color: "var(--color-primary-foreground)" 
                         }}
-                        disabled={!isValid}
+                        disabled={isSaving}
                         onClick={handleSave}
                     >
                         {isEditing ? 'Ενημέρωση' : 'Αποθήκευση'}

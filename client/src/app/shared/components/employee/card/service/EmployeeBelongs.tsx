@@ -21,6 +21,7 @@ interface EmployeeBelongsProps {
 export default function EmployeeBelongs({ employeeService }: EmployeeBelongsProps) {
     const { address, sector, department, office } = useValues();
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const { updateEmployeeBelongs } = useEmployee({});
 
     const { control, handleSubmit, watch, reset, trigger, formState: { isValid, errors } } = useForm<BelongsSchema>({
@@ -41,7 +42,7 @@ export default function EmployeeBelongs({ employeeService }: EmployeeBelongsProp
     const filteredDepartments = department.filter(d => d.addressId === watchDirectorate && d.sectorId === watchSector);
 
     const handleSave = handleSubmit((data) => {
-        if (!data) return;
+        if (!data || isSaving) return;
 
         const employeeBelongs: EmployeeBelongs = {
             am: Number(employeeService?.am),
@@ -51,6 +52,7 @@ export default function EmployeeBelongs({ employeeService }: EmployeeBelongsProp
             office: data.office,
         };
 
+        setIsSaving(true);
         updateEmployeeBelongs(employeeBelongs, {
             onSuccess: () => {
                 toast.custom((t) => (
@@ -68,6 +70,7 @@ export default function EmployeeBelongs({ employeeService }: EmployeeBelongsProp
                     </div>
                 ));
                 setSheetOpen(false);
+                setIsSaving(false);
             },
             onError: (error: Error) => {
                 toast.custom((t) => (
@@ -84,6 +87,7 @@ export default function EmployeeBelongs({ employeeService }: EmployeeBelongsProp
                         </button>
                     </div>
                 ));
+                setIsSaving(false);
             },
         });
     });
@@ -199,7 +203,7 @@ export default function EmployeeBelongs({ employeeService }: EmployeeBelongsProp
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f3f4f6"}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "var(--color-ghost)"}
-                            onClick={() => setSheetOpen(false)}>Κλείσιμο</Button>
+                            onClick={() => { setSheetOpen(false); setIsSaving(false); }}>Κλείσιμο</Button>
                         <Button className="flex-1 transition-all duration-200 hover:opacity-80 w-auto"
                             style={{
                                 display: "flex",
@@ -212,7 +216,7 @@ export default function EmployeeBelongs({ employeeService }: EmployeeBelongsProp
                                 background: "var(--color-primary)",
                                 color: "var(--color-primary-foreground)",
                             }}
-                            onClick={handleSave} disabled={!isValid}>Αποθήκευση</Button>
+                            onClick={handleSave} disabled={!isValid || isSaving}>Αποθήκευση</Button>
                     </div>
                 </SheetContent>
             </Sheet>

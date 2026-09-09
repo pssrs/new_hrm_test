@@ -22,6 +22,7 @@ interface EmployeeNumbersProps {
 export default function EmployeeNumbers({ employee }: EmployeeNumbersProps) {
     const { doys } = useValues();
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const { updateEmployeeNumber } = useEmployee({});
     const numbersForm = useForm<NumbersSectionSchema>({
         mode: 'onChange',
@@ -69,7 +70,7 @@ export default function EmployeeNumbers({ employee }: EmployeeNumbersProps) {
     }, [sheetOpen, employee, reset]);
 
     const handleSave = handleSubmit((data) => {
-        if (!employee) return;
+        if (!employee || isSaving) return;
 
         const updatedNumbers: EmployeeNumber = {
             am: employee.am,
@@ -80,6 +81,7 @@ export default function EmployeeNumbers({ employee }: EmployeeNumbersProps) {
             doy: data.doy || "",
         };
 
+        setIsSaving(true);
         updateEmployeeNumber(updatedNumbers, {
             onSuccess: () => {
                 toast.custom((t) => (
@@ -97,6 +99,7 @@ export default function EmployeeNumbers({ employee }: EmployeeNumbersProps) {
                     </div>
                 ));
                 setSheetOpen(false);
+                setIsSaving(false);
             },
             onError: (error: Error) => {
                 toast.custom((t) => (
@@ -113,6 +116,7 @@ export default function EmployeeNumbers({ employee }: EmployeeNumbersProps) {
                         </button>
                     </div>
                 ));
+                setIsSaving(false);
             },
         });
     });
@@ -241,7 +245,7 @@ export default function EmployeeNumbers({ employee }: EmployeeNumbersProps) {
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-ghost)'}
-                        onClick={() => setSheetOpen(false)}>Κλείσιμο</Button>
+                        onClick={() => { setSheetOpen(false); setIsSaving(false); }}>Κλείσιμο</Button>
                     <Button className="flex-1 transition-all duration-200 hover:opacity-80 w-auto"
                         style={{
                             display: 'flex',
@@ -252,8 +256,9 @@ export default function EmployeeNumbers({ employee }: EmployeeNumbersProps) {
                             alignSelf: 'stretch',
                             borderRadius: 'var(--Radius-Rounded-Medium, 6px)',
                             background: 'var(--color-primary)',
-                            color: 'var(--color-primary-foreground)', 
+                            color: 'var(--color-primary-foreground)',
                         }}
+                        disabled={isSaving}
                         onClick={handleSave}
                     >
                         Αποθήκευση

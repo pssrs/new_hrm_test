@@ -19,6 +19,7 @@ interface EmployeeIdentityProps {
 
 export default function EmployeeIdentity({ employee }: EmployeeIdentityProps) {
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const { updateEmployeeIdentity } = useEmployee({ id: employee?.id?.toString() });
     const identityForm = useForm<IdentitySectionSchema>({
         mode: 'onChange',
@@ -57,7 +58,7 @@ export default function EmployeeIdentity({ employee }: EmployeeIdentityProps) {
     }, [sheetOpen, employee, reset]);
 
     const handleSave = handleSubmit((data) => {
-        if (!employee) return;
+        if (!employee || isSaving) return;
 
         const updatedIdentity: EmployeeIdentity = {
             am: employee.am,
@@ -67,6 +68,7 @@ export default function EmployeeIdentity({ employee }: EmployeeIdentityProps) {
             identityCardIssueDate: data.identityCardIssueDate,
         };
 
+        setIsSaving(true);
         updateEmployeeIdentity(updatedIdentity, {
             onSuccess: () => {
                 toast.custom((t) => (
@@ -84,6 +86,7 @@ export default function EmployeeIdentity({ employee }: EmployeeIdentityProps) {
                     </div>
                 ));
                 setSheetOpen(false);
+                setIsSaving(false);
             },
             onError: (error: Error) => {
                 toast.custom((t) => (
@@ -100,6 +103,7 @@ export default function EmployeeIdentity({ employee }: EmployeeIdentityProps) {
                         </button>
                     </div>
                 ));
+                setIsSaving(false);
             },
         });
     });
@@ -209,7 +213,7 @@ export default function EmployeeIdentity({ employee }: EmployeeIdentityProps) {
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-ghost)'}
-                            onClick={() => setSheetOpen(false)}>Κλείσιμο</Button>
+                            onClick={() => { setSheetOpen(false); setIsSaving(false); }}>Κλείσιμο</Button>
                         <Button className="flex-1 transition-all duration-200 hover:opacity-80 w-auto"
                             style={{
                                 display: 'flex',
@@ -220,8 +224,9 @@ export default function EmployeeIdentity({ employee }: EmployeeIdentityProps) {
                                 alignSelf: 'stretch',
                                 borderRadius: 'var(--Radius-Rounded-Medium, 6px)',
                                 background: 'var(--color-primary)',
-                                color: 'var(--color-primary-foreground)', 
+                                color: 'var(--color-primary-foreground)',
                             }}
+                            disabled={isSaving}
                             onClick={handleSave}
                         >
                             Αποθήκευση

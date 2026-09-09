@@ -1,20 +1,4 @@
 //------------------------------ STUDIES TYPES ------------------------------
-export const STUDY_TYPES = [
-    { value: "0", label: "Απολυτήριο Δημοτικού" },
-    { value: "1", label: "Απολυτήριο Γυμνασίου" },
-    { value: "2", label: "Απολυτήριο Λυκείου" },
-    { value: "3", label: "Πτυχίο ΙΕΚ" },
-    { value: "4", label: "Πτυχίο ΤΕΙ" },
-    { value: "5", label: "Πτυχίο ΑΕΙ" },
-    { value: "6", label: "Σεμινάριο/Επιμόρφωση" },
-    { value: "7", label: "Μεταπτυχιακό" },
-    { value: "8", label: "Διδακτορικό" },
-    { value: "9", label: "Ξένη γλώσσα" },
-    { value: "10", label: "Πτυχίο Η/Υ" },
-    { value: "11", label: "Πρόγραμμα μετεκπαίδευσης" },
-    { value: "12", label: "ΟΑΕΔ" },
-    { value: "13", label: "ΕΣΔΔΑ" },
-];
 
 export const STUDY_EDUCATION = [
     { value: "0", label: "-" },

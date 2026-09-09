@@ -57,6 +57,7 @@ const MIN_SCALE = 0.6;
 
 export default function EmployeeMove() {
     const [scale, setScale] = useState(1);
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         const updateScale = () => {
@@ -124,6 +125,7 @@ export default function EmployeeMove() {
 
     const handleRowClick = (move: Record<string, unknown>) => {
         setIsEditing(true);
+        setIsSaving(false);
         setValue("id", Number(move.id));
         setValue("am", Number(move.am));
         setValue("type", String(move.type));
@@ -138,11 +140,15 @@ export default function EmployeeMove() {
     };
 
     const handleSave = async () => {
+        if (isSaving) return;
+
         const isFormValid = await trigger();
         if (!isFormValid) return;
 
         const formData = getValues();
-        
+
+        setIsSaving(true);
+
         try {
             if (isEditing && formData.id) {
                 const moveData: Move = {
@@ -165,10 +171,12 @@ export default function EmployeeMove() {
                             reset(defaultFormValues);
                             setSheetOpen(false);
                             setIsEditing(false);
+                            setIsSaving(false);
                         },
                         onError: (error) => {
                             showErrorToast("Σφάλμα κατά την ενημέρωση της μετακίνησης");
                             console.error(error);
+                            setIsSaving(false);
                         }
                     }
                 );
@@ -193,16 +201,19 @@ export default function EmployeeMove() {
                             reset(defaultFormValues);
                             setSheetOpen(false);
                             setIsEditing(false);
+                            setIsSaving(false);
                         },
                         onError: (error) => {
                             showErrorToast("Σφάλμα κατά τη δημιουργία της μετακίνησης");
                             console.error(error);
+                            setIsSaving(false);
                         }
                     }
                 );
             }
         } catch (error) {
             console.error("Error saving move:", error);
+            setIsSaving(false);
         }
     };
 
@@ -224,11 +235,13 @@ export default function EmployeeMove() {
         setIsEditing(false);
         reset(defaultFormValues);
         setSheetOpen(true);
+        setIsSaving(false);
     };
 
     const handleCloseSheet = () => {
         setSheetOpen(false);
         setIsEditing(false);
+        setIsSaving(false);
         reset(defaultFormValues);
     };
 
@@ -438,6 +451,7 @@ export default function EmployeeMove() {
                             onClick={() => setSheetOpen(false)}>Κλείσιμο</Button>
                         <Button className="flex-1 transition-all duration-200 hover:opacity-80 w-auto"
                             style={{ display: "flex", height: "var(--Height-H-10, 40px)", padding: "var(--Padding-Y-py-2, 8px) var(--Padding-X-px-4, 16px)", justifyContent: "center", alignItems: "center", alignSelf: "stretch", borderRadius: "var(--Radius-Rounded-Medium, 6px)", background: "var(--color-primary)", color: "var(--color-primary-foreground)" }}
+                            disabled={isSaving}
                             onClick={handleSave}>Αποθήκευση</Button>
                     </div>
                 </SheetContent>

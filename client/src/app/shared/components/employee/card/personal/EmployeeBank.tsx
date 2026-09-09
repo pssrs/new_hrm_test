@@ -20,6 +20,7 @@ interface EmployeeBankProps {
 export default function EmployeeBank({ employee }: EmployeeBankProps) {
 
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const { updateEmployeeBank } = useEmployee({});
     const bankForm = useForm<BankSectionSchema>({
         mode: 'onChange',
@@ -52,14 +53,15 @@ export default function EmployeeBank({ employee }: EmployeeBankProps) {
     }, [sheetOpen, employee, reset]);
 
     const handleSave = handleSubmit((data) => {
-        if (!employee) return;
+        if (!employee || isSaving) return;
 
         const bankData: EmployeeBank = {
             am: employee.am,
             iban1: data.iban1,
-            iban2: data.iban2       
+            iban2: data.iban2
         };
 
+        setIsSaving(true);
         updateEmployeeBank(bankData, {
             onSuccess: () => {
                 toast.custom((t) => (
@@ -77,6 +79,7 @@ export default function EmployeeBank({ employee }: EmployeeBankProps) {
                     </div>
                 ));
                 setSheetOpen(false);
+                setIsSaving(false);
             },
             onError: (error: Error) => {
                 toast.custom((t) => (
@@ -93,6 +96,7 @@ export default function EmployeeBank({ employee }: EmployeeBankProps) {
                         </button>
                     </div>
                 ));
+                setIsSaving(false);
             },
         });
     });
@@ -169,7 +173,7 @@ export default function EmployeeBank({ employee }: EmployeeBankProps) {
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-ghost)'}
-                            onClick={() => setSheetOpen(false)}>Κλείσιμο</Button>
+                            onClick={() => { setSheetOpen(false); setIsSaving(false); }}>Κλείσιμο</Button>
                         <Button className="flex-1 transition-all duration-200 hover:opacity-80 w-auto"
                             style={{
                                 display: 'flex',
@@ -180,8 +184,9 @@ export default function EmployeeBank({ employee }: EmployeeBankProps) {
                                 alignSelf: 'stretch',
                                 borderRadius: 'var(--Radius-Rounded-Medium, 6px)',
                                 background: 'var(--color-primary)',
-                                color: 'var(--color-primary-foreground)', 
+                                color: 'var(--color-primary-foreground)',
                             }}
+                            disabled={isSaving}
                             onClick={handleSave}
                         >
                             Αποθήκευση

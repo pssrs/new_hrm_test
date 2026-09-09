@@ -46,7 +46,8 @@ export default function EmployeeList() {
   const [department_Id, setDepartment_Id] = React.useState<number>(0);
   const [office_Id, setOffice_Id] = React.useState<number>(0);
 
-  const { employeeGroup, isLoading, isError} = useEmployee({ page, pageSize: PAGE_SIZE, search, flag: selectedFlag > 0 ? selectedFlag : undefined,
+  const { employeeGroup, isLoading, isError} = useEmployee({ 
+    page, pageSize: PAGE_SIZE, search, flag: selectedFlag > 0 ? selectedFlag : undefined,
     address_Id, sector_Id, department_Id, office_Id
   });
   const { sector, department, office } = useValues();

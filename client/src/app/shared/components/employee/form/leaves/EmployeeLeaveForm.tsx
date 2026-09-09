@@ -51,7 +51,7 @@ export default function EmployeeLeaveForm({ leave, onClose, leaveList, leaveTota
         state: 0
     } satisfies FormData;
 
-    const { control, reset, getValues, watch, formState: { errors, isValid }, trigger } = useForm<FormData>({
+    const { control, reset, getValues, watch, formState: { errors }, trigger } = useForm<FormData>({
         resolver: zodResolver(employeeLeaveSchema),
         mode: "onChange",
         defaultValues: defaultFormValues,
@@ -477,10 +477,10 @@ export default function EmployeeLeaveForm({ leave, onClose, leaveList, leaveTota
                         background: "var(--color-primary)", 
                         color: "var(--color-primary-foreground)" 
                     }}
-                    disabled={!isValid || !hasEnoughBalance || isSaving}
+                    disabled={!hasEnoughBalance || isSaving}
                     onClick={handleSave}
                 >
-                    {isSaving ? 'Αποθήκευση...' : isEditing ? 'Ενημέρωση' : 'Αποθήκευση'}
+                    {isEditing ? 'Ενημέρωση' : 'Αποθήκευση'}
                 </Button>
             </div>
         </div>
